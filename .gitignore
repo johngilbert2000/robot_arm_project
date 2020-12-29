@@ -1,0 +1,8 @@
+miniconda/*
+miniconda3/*
+devel/*
+build/*
+conda/*
+__pycache__
+Miniconda3-latest-Linux-x86_64.sh
+'robotics hw4 tutorial.pdf'

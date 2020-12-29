@@ -1,0 +1,4 @@
+pyyaml==5.3.1
+rospkg==1.2.9
+opencv-python==3.4.0.14
+catkin-tools==0.6.1
