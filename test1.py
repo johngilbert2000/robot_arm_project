@@ -155,9 +155,14 @@ def plan_motion():
     item_release = [MotionCommand("move",{'Z':320}),MotionCommand("release",{}),MotionCommand("move",{'Z':450})]
     item_subroutine = [item_location]+item_grab+[new_item_location]+item_release+[MotionCommand("move",{'Z':450})]
 
+    cut_location = MotionCommand("move",{'X':150,'Y':550,'Z':450})
+    cut = [cut_location]
+
+
     #MCList = start + take_gripper + item_subroutine + put_gripper + take_knife + put_knife + end
-    MCList = start + away + end
+    #MCList = start + away + end
     #MCList = start + take_knife + away + put_knife + end
+    MCList = take_knife + cut
 
     print('Raw Motion Commands:')
     PrintRawMCList(MCList)
