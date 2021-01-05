@@ -7,7 +7,7 @@ from get_pixel_position import get_pixel_position
 from arm_class import Arm
 import time
 from motion_generator import Motion, MotionCommand, GetSpecialMotion, PrintRawMCList
-from hsv import get_blue_orange
+from hsv import get_blue_orange, get_cuts
 
 
 def get_tooltip_offset(Rx, Rz, tool_length = 100):
@@ -207,8 +207,8 @@ def main():
     m = Motion([MotionCommand("away", {}), MotionCommand("release", {})])
     execute_motion_dangerous(m, arm)
     time.sleep(10)
-    m = plan_motion()
-    execute_motion_dangerous(m, arm)
+    #m = plan_motion()
+    #execute_motion_dangerous(m, arm)
     return
 
 

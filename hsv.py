@@ -105,8 +105,43 @@ def get_food_region(img, debug=False):
 
     return mask
 
+def is_counterclockwise(pA, pB, pC):
+    aa = pA[0]*pB[1]+pB[0]*pC[1]+pC[0]*pA[1]
+    bb = pA[0]*pC[1]+pB[0]*pA[1]+pC[0]*pB[1]
+    return (aa > bb)
 
-def get_cutting_board_mask(img, debug=False):
+'''
+def is_on_horizontal_line(start_xy, end_xy, y):
+    if start_xy[1] > end_xy[1]:
+        pA_xy = end_xy
+        pB_xy = start_xy
+    else:
+        pA_xy = start_xy
+        pB_xy = end_xy
+    if y > pB_xy[1] or y < pA_xy[1]:
+        return None
+    return True
+
+def hull_intersect_horizontal_line(hull, y):
+    acc = 0
+    for i in range(len(hull)):
+        pA = tuple(hull[i])
+        pB = tuple(hull[(i+1) % len(hull)])
+        if is_on_horizontal_line(acc)
+    exit(0)
+    return
+'''
+
+def in_convex_hull(p, hull):
+    for i in range(len(hull)):
+        pA = tuple(hull[i])
+        pB = tuple(hull[(i+1) % len(hull)])
+        if not is_counterclockwise(p, pA, pB):
+            return False
+    return True
+
+
+def get_cuts(img, debug=False):
     colors = []
     red1 = [np.array([0,43,46]), np.array([10,255,255])]
     red2 = [np.array([160,43,46]), np.array([180,255,255])]
@@ -117,11 +152,13 @@ def get_cutting_board_mask(img, debug=False):
     #mask = cv2.bitwise_not(mask)
     mask = cv2.erode(mask, np.ones((5,5), np.uint8))
     mask = cv2.dilate(mask, np.ones((5,5), np.uint8))
+    mask = cv2.dilate(mask, np.ones((3,3), np.uint8))
+    mask = cv2.erode(mask, np.ones((3,3), np.uint8))
+    might_be_object = cv2.bitwise_not(mask)
     mask = cv2.dilate(mask, np.ones((20,20), np.uint8))
     mask = cv2.dilate(mask, np.ones((20,20), np.uint8))
     mask = cv2.erode(mask, np.ones((20,20), np.uint8))
     mask = cv2.erode(mask, np.ones((20,20), np.uint8))
-
 
     # Find contours
     contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -134,18 +171,59 @@ def get_cutting_board_mask(img, debug=False):
     print(hull.shape)
     hull = hull.reshape([hull.shape[0], 2])
 
-    plot_hull = np.zeros_like(img)
-    for i in range(len(hull)):
-        cv2.circle(plot_hull,(hull[i][0], hull[i][1]), 15, (255, 0, 0), -1)
-    cv2.imshow('plot_hull', plot_hull)
-    cv2.waitKey(0)
+    #plot_hull = np.zeros_like(img)
+    plot_hull = img.copy()
+    for y in range(16, 480, 32):
+        for x in range(16, 640, 32):
+            cv2.circle(plot_hull,(x,y), 3, (0,255,0), -1)
+    cuts = []
+    for y in range(16, 480, 32):
+        for x in range(16, 640-32, 32):
+            pA = (x,y)
+            pB = (x+32,y)
+            cuts.append((pA,pB))
+    for x in range(16, 640, 32):
+        for y in range(16, 480-32, 32):
+            pA = (x,y)
+            pB = (x,y+32)
+            cuts.append((pA,pB))
+    valid_cuts = []
+    for cut in cuts:
+        pA = cut[0]
+        pB = cut[1]
+        if in_convex_hull(pA, hull) and in_convex_hull(pB, hull):
+            should_cut = False
+            if pA[0]==pB[0]: # vertical cut
+                #print('vertical cut')
+                for y in range(pA[1],pB[1]+1):
+                    if might_be_object[y,pA[0]]:
+                        should_cut = True
+            elif pA[1]==pB[1]:
+                #print('horizontal cut')
+                for x in range(pA[0],pB[0]+1):
+                    if might_be_object[pA[1],x]:
+                        should_cut = True
+            if should_cut:
+                valid_cuts.append(cut)
 
+    for cut in valid_cuts:
+        pA = cut[0]
+        pB = cut[1]
+        cv2.line(plot_hull, pA, pB, (0,0,255), 1)
+
+    for i in range(len(hull)):
+        pA = tuple(hull[i])
+        pB = tuple(hull[(i+1) % len(hull)])
+        cv2.line(plot_hull, pA, pB, (255,255,255), 2)
 
 
     if debug:
         cv2.imshow('img', img)
-        cv2.imshow('mask', mask)
+        cv2.imshow('plot_hull', plot_hull)
+        #cv2.imwrite('show_cuts_002.png', plot_hull)
+        cv2.imshow('might_be_object', might_be_object)
         cv2.waitKey(0)
+    return valid_cuts
 
 def get_food_only_photo(img, debug=False):
     mask = get_food_region(img, debug)
@@ -170,6 +248,7 @@ def find_food(img, debug=False):
 
 
 if __name__ == "__main__":
+
     cap = cv2.VideoCapture(0)
     ret,frame = cap.read()
     cap.release()
@@ -177,7 +256,7 @@ if __name__ == "__main__":
     #get_red_circles(frame, True)
     #food = find_food(frame, True)
 
-    get_cutting_board_mask(frame, True)
+    cut = get_cuts(frame, True)
     exit(0)
 
     blue_c, orange_c = get_blue_orange(frame, True)
