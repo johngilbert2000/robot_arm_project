@@ -155,6 +155,7 @@ def get_cuts(img, debug=False):
     mask = cv2.dilate(mask, np.ones((3,3), np.uint8))
     mask = cv2.erode(mask, np.ones((3,3), np.uint8))
     might_be_object = cv2.bitwise_not(mask)
+    might_be_object = cv2.erode(might_be_object, np.ones((5,5), np.uint8))
     mask = cv2.dilate(mask, np.ones((20,20), np.uint8))
     mask = cv2.dilate(mask, np.ones((20,20), np.uint8))
     mask = cv2.erode(mask, np.ones((20,20), np.uint8))
@@ -162,9 +163,10 @@ def get_cuts(img, debug=False):
 
     # Find contours
     contours = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-    contours = contours[1]
+    contours = contours[0]
+    # print(contours)
     print([i.shape for i in contours])
-    contours = np.concatenate(contours, axis=0)
+    contours = np.concatenate(contours, axis=0).astype(np.float32)
     print(contours.shape)
     # Find the convex hull object for each contour
     hull = cv2.convexHull(contours)
@@ -223,6 +225,7 @@ def get_cuts(img, debug=False):
         #cv2.imwrite('show_cuts_002.png', plot_hull)
         cv2.imshow('might_be_object', might_be_object)
         cv2.waitKey(0)
+        cv2.destroyAllWindows()
     return valid_cuts
 
 def get_food_only_photo(img, debug=False):

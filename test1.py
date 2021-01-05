@@ -19,6 +19,20 @@ def get_tooltip_offset(Rx, Rz, tool_length = 100):
     y = np.sin(RzRadMinus90)*r
     return float(x),float(y),float(h)
 
+def get_knifetip_offset(Rz):
+
+    RzRad = np.deg2rad(Rz + 55)
+    RzDelta = RzRad
+
+    if Rz > 200 and Rz < 250:
+        r = 30
+    else:
+        r = 55
+    x = np.cos(RzDelta)*r
+    y = np.sin(RzDelta)*r
+    return float(x),float(y)
+
+
 def get_gripper_xy(blue_xy, orange_xy):
     unit_x = orange_xy - blue_xy
     unit_x /= np.linalg.norm(unit_x)
@@ -60,6 +74,9 @@ def plan_motion():
     cap = cv2.VideoCapture(0)
     ret,frame = cap.read()
     cv2.imwrite(output_img_fn, frame)
+
+    cuts = get_cuts(frame, debug=True)
+
 
     blue_c, orange_c = get_blue_orange(frame, debug=False)
 
@@ -191,10 +208,45 @@ def plan_motion():
     cut = cut_location + knife_subroutine
 
 
-    #MCList = start + take_gripper + item_subroutine + put_gripper + take_knife + put_knife + end
-    #MCList = start + away + end
-    #MCList = start + take_knife + away + put_knife + end
-    MCList = start + take_knife + put_knife + end
+    cut_motion = []
+    cut_safe_height = 350
+    cut_z = 238
+    cutting_board_z = 235
+    cut_motion.append(MotionCommand("move", {'Z': cut_safe_height}))
+    print('rz=', rz)
+    for cut in cuts:
+        cut_start_x, cut_start_y = get_pixel_position(cut[1][0], cut[1][1], cutting_board_z)
+        cut_end_x, cut_end_y = get_pixel_position(cut[0][0], cut[0][1], cutting_board_z)
+        cut_start_x = float(cut_start_x)
+        cut_start_y = float(cut_start_y)
+        cut_end_x = float(cut_end_x)
+        cut_end_y = float(cut_end_y)
+        cut_tmp_rz = float(np.rad2deg(np.arctan2(cut_end_y-cut_start_y,cut_end_x-cut_start_x)))
+        if cut_tmp_rz < 70 and cut_tmp_rz > 30:
+            cut_tmp_rz += 180
+        if cut_tmp_rz < 0:
+            cut_tmp_rz += 360
+
+        knifetip_offset_x, knifetip_offset_y = get_knifetip_offset(cut_tmp_rz)
+        print('cut_tmp_rz:', cut_tmp_rz)
+        print('knifetip_offset:', knifetip_offset_x, knifetip_offset_y)
+        cut_start_x += knifetip_offset_x
+        cut_end_x += knifetip_offset_x
+        cut_start_y += knifetip_offset_y
+        cut_end_y += knifetip_offset_y
+
+
+        cut_motion.append(MotionCommand("move", {'X': cut_start_x, 'Y':cut_start_y, 'Rz':cut_tmp_rz}))
+        cut_motion.append(MotionCommand("move", {'Z': cut_z}))
+        cut_motion.append(MotionCommand("move", {'X': cut_end_x, 'Y':cut_end_y, 'Rz':cut_tmp_rz}))
+        cut_motion.append(MotionCommand("move", {'X': cut_start_x, 'Y':cut_start_y, 'Rz':cut_tmp_rz}))
+        cut_motion.append(MotionCommand("move", {'Z': cut_safe_height}))
+
+        print((cut_start_x, cut_start_y), (cut_end_x, cut_end_y), cut_tmp_rz)
+
+
+
+    MCList = start + take_knife + cut_motion + put_knife + end
 
 
     print('Raw Motion Commands:')
