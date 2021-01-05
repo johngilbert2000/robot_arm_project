@@ -30,7 +30,14 @@ def get_knife_xy(blue_xy, orange_xy):
     unit_x = orange_xy - blue_xy
     unit_x /= np.linalg.norm(unit_x)
     unit_y = np.array([-unit_x[1], unit_x[0]])
-    ret = blue_xy -22*unit_x + 38*unit_y
+    ret = orange_xy + 33*unit_x + 0*unit_y
+    return ret
+
+def get_knife_xy_pre(blue_xy, orange_xy):
+    unit_x = orange_xy - blue_xy
+    unit_x /= np.linalg.norm(unit_x)
+    unit_y = np.array([-unit_x[1], unit_x[0]])
+    ret = orange_xy + 10*unit_x + 0*unit_y
     return ret
 
 def get_rz(blue_xy, orange_xy):
@@ -70,6 +77,7 @@ def plan_motion():
 
     gripper_xy = get_gripper_xy(blue_xy, orange_xy)
     knife_xy = get_knife_xy(blue_xy, orange_xy)
+    knife_xy_pre = get_knife_xy_pre(blue_xy, orange_xy)
     rz = get_rz(blue_xy, orange_xy)
 
     dist = np.linalg.norm(blue_xy-orange_xy)
@@ -120,29 +128,41 @@ def plan_motion():
         MotionCommand("release", {}),
         MotionCommand("move", put_gripper_safe),
         MotionCommand("move", {"Rx": 180})]
-    take_knife_safe = {'Z':450}
-    take_knife_rotation = {'Rx':180,'Ry':0}
-    take_knife_position_pre_pre = {'Z': 215}
-    take_knife_position_pre = {'Z': 200}
-    take_knife_position = {'Z':192}
-    take_knife_motion = [MotionCommand("move", take_knife_safe),
+
+
+    knife_safe_height = {'Z':450}
+
+    knife_cut_rot = {'Ry':-20}
+
+    knife_rest_rot = {'Rx':180,'Ry':0, 'Rz':rz+90}
+    knife_rest_xy = {'X':float(knife_xy[0]),'Y':float(knife_xy[1])}
+    knife_rest_z = {'Z':175}
+    knife_rest_pose = dict(knife_rest_z, **knife_rest_xy)
+
+    draw_knife_pose = {'X':float(knife_xy_pre[0]),'Y':float(knife_xy_pre[1]),'Z':200}
+    draw_knife_xy = {'X':float(knife_xy_pre[0]),'Y':float(knife_xy_pre[1])}
+    draw_knife_z = {'Z': 200}
+    near_knife_z = {'Z': 200}
+    z_offset = 30
+    take_knife_motion = [\
+        MotionCommand("move", knife_safe_height),
         MotionCommand("release", {}),
-        MotionCommand("move", take_knife_rotation),
-        MotionCommand("move", take_knife_position_pre_pre),
-        MotionCommand("move", take_knife_position_pre),
-        MotionCommand("move", take_knife_position),
+        MotionCommand("move", knife_rest_xy),
+        MotionCommand("move", knife_rest_rot),
+        MotionCommand("move", near_knife_z),
+        MotionCommand("move", knife_rest_z),
         MotionCommand("grab", {}),
-        MotionCommand("move", take_knife_safe)]
-    put_knife_safe = {'Z':450}
-    put_knife_rotation = {'Rx':180,'Ry':0}
-    put_knife_position_pre = {'Z': 200}
-    put_knife_position = {'Z':192}
-    put_knife_motion = [MotionCommand("move", put_knife_safe),
-        MotionCommand("move", put_knife_rotation),
-        MotionCommand("move", put_knife_position_pre),
-        MotionCommand("move", put_knife_position),
+        MotionCommand("move", draw_knife_pose),
+        MotionCommand("move", knife_safe_height),
+        MotionCommand("move", knife_cut_rot)]
+    put_knife_motion = [\
+        MotionCommand("move", knife_safe_height),
+        MotionCommand("move", draw_knife_xy),
+        MotionCommand("move", knife_rest_rot),
+        MotionCommand("move", draw_knife_z),
+        MotionCommand("move", knife_rest_pose),
         MotionCommand("release", {}),
-        MotionCommand("move", put_knife_safe)]
+        MotionCommand("move", knife_safe_height)]
 
     gripper_xy = gripper_xy - np.array([gripper_tooltip_offset[i] for i in range(2)])
     gripper_location = MotionCommand("move",{'X':float(gripper_xy[0]),'Y':float(gripper_xy[1]),'Rz':rz})
@@ -150,9 +170,9 @@ def plan_motion():
     take_gripper = [gripper_location]+take_gripper_motion
     put_gripper = [gripper_location]+put_gripper_motion
 
-    knife_location = MotionCommand("move",{'X':float(knife_xy[0]),'Y':float(knife_xy[1]),'Rz':rz})
-    take_knife = [knife_location]+take_knife_motion
-    put_knife = [knife_location]+put_knife_motion
+
+    take_knife = take_knife_motion
+    put_knife = put_knife_motion
 
 
     item_location = MotionCommand("move",{'X':150,'Y':400,'Rz':135})
@@ -174,7 +194,8 @@ def plan_motion():
     #MCList = start + take_gripper + item_subroutine + put_gripper + take_knife + put_knife + end
     #MCList = start + away + end
     #MCList = start + take_knife + away + put_knife + end
-    MCList = start + take_knife + cut + put_knife + end
+    MCList = start + take_knife + put_knife + end
+
 
     print('Raw Motion Commands:')
     PrintRawMCList(MCList)
@@ -206,9 +227,9 @@ def main():
     arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, _use_killswitch=True)
     m = Motion([MotionCommand("away", {}), MotionCommand("release", {})])
     execute_motion_dangerous(m, arm)
-    time.sleep(10)
-    #m = plan_motion()
-    #execute_motion_dangerous(m, arm)
+    #time.sleep(10)
+    m = plan_motion()
+    execute_motion_dangerous(m, arm)
     return
 
 
