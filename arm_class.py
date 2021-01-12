@@ -245,10 +245,16 @@ class Arm:
             # k = input("Hit k+[ENTER] to kill robot command;\nHit p+[ENTER] to pause\n hit (any key) + [ENTER] to continue ")
             k = input("[ENTER] - kill execution\n(any key) + [ENTER] - continue ")
             if k == "":
-                self.__send_script("StopAndClearBuffer()")
+                self.__send_script("QueueTag()")
                 # self.pause()
                 print("\nKilled\n")
                 exit(0)
+
+    def wait(self):
+        resp = self.__send_script("QueueTag(13,1)")
+        print(resp)
+        return
+
 
 
     def pause(self):
@@ -267,7 +273,8 @@ class Arm:
             script_service = rospy.ServiceProxy('/tm_driver/send_script', SendScript)
             move_cmd = SendScriptRequest()
             move_cmd.script = script
-            script_service(move_cmd)
+            resp = script_service(move_cmd)
+            return resp
         except rospy.ServiceException as e:
             print("Send script service call failed: %s"%e)
 
@@ -324,6 +331,7 @@ class Arm:
         if Rz is not None:
             self.__Rz = self.__assert_num(Rz)
         self.__move()
+
 
 
 
@@ -447,6 +455,14 @@ class Arm:
 
 
 if __name__ == "__main__":
+    import subprocess
+    cmd = ['roslaunch tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.119']
+    tmdriver_subprocess = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 1)
+    out = p.communicate()
+    print(out)
+
+
+
     try:
         if DEBUG:
             rospy = None
@@ -460,13 +476,18 @@ if __name__ == "__main__":
         # Example Usage
 
         # arm = Arm(X=300,Y=300,Z=350,Rx=180,Ry=0,Rz=0)
-        arm = Arm()
+        arm = Arm(_use_killswitch=False)
         #arm = Arm(DEFAULT_X, DEFAULT_Y, DEFAULT_Z, DEFAULT_RX, DEFAULT_RY, DEFAULT_RZ)
-        arm.debug_flag = DEBUG # If True, robot won't actually move
+        #arm.debug_flag = DEBUG # If True, robot won't actually move
         #arm.center()
         #arm.move(X=150, Y=550)
+        #arm.center()
+        #print('arm center')
+        arm.away()
+        arm.wait()
         arm.center()
-        arm.display()
+
+        #arm.display()
         #arm.move(X=300, Y=300)
         # arm.move(Rx=160, Ry=0, Rz=0)
 
