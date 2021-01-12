@@ -125,6 +125,7 @@ class Arm:
         self.__joint4 = 0
         self.__joint5 = 90
         self.__joint6 = 0
+        self.start_tm_driver()
 
     def get_joints(self):
         return [self.__joint1, self.__joint2, self.__joint3, self.__joint4, self.__joint5, self.__joint6]
@@ -250,9 +251,28 @@ class Arm:
                 print("\nKilled\n")
                 exit(0)
 
+    def start_tm_driver(self):
+        import subprocess
+        # cmd = "stdbuf -oL roslaunch tm_driver tm5_900_bringup.launch robot_ip:=192.168.0.119 2>&1 | nc 127.0.0.1 %d &" % portnumber
+        cmd = ['stdbuf', '-oL', 'roslaunch', 'tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.119']
+        print(cmd)
+        self.p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+        time.sleep(5)
+
+    def stop_tm_driver(self):
+        self.p.terminate()
+        self.p.wait()
+
     def wait(self):
+        seconds = 1.5
         resp = self.__send_script("QueueTag(13,1)")
-        print(resp)
+        #print('resp:', resp)
+        while True:
+            data = self.p.stdout.readline()
+            if "13,true" in data.decode():
+                break
+        print('motion completed, sleep for %f seconds' % seconds)
+        time.sleep(seconds)
         return
 
 
@@ -455,8 +475,34 @@ class Arm:
 
 
 if __name__ == "__main__":
+    # import socket
+    # s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # portnumber = 9453
+    # s.bind(('127.0.0.1',portnumber))
+    # s.listen(1)
+
+    # cmd = "python3 while.py &"
+    # cmd = cmd.split(" ")
+    # print(cmd)
+    # p = subprocess.Popen(cmd, shell=False)
+
+    # print("PROCESS ID", p.pid)
+
+    # time.sleep(10)
+    # print("killing process", p.pid)
+    # p.terminate()
+    # p.wait()
 
 
+
+
+    
+
+
+    #while 1:
+    #    data = conn.recv(1024)
+    #    print(data)
+    #exit(0)
 
     try:
         if DEBUG:
@@ -478,9 +524,11 @@ if __name__ == "__main__":
         #arm.move(X=150, Y=550)
         #arm.center()
         #print('arm center')
+        arm.center()
         arm.away()
         arm.wait()
         arm.center()
+        arm.stop_tm_driver()
 
         if len(sys.argv) >= 7:
             arm.move(x,y,z,rx,ry,rz)

@@ -153,7 +153,7 @@ def plan_motion():
 
     knife_rest_rot = {'Rx':180,'Ry':0, 'Rz':rz+90}
     knife_rest_xy = {'X':float(knife_xy[0]),'Y':float(knife_xy[1])}
-    knife_rest_z = {'Z':175}
+    knife_rest_z = {'Z':171}
     knife_rest_pose = dict(knife_rest_z, **knife_rest_xy)
 
     draw_knife_pose = {'X':float(knife_xy_pre[0]),'Y':float(knife_xy_pre[1]),'Z':200}
@@ -169,6 +169,7 @@ def plan_motion():
         MotionCommand("move", near_knife_z),
         MotionCommand("move", knife_rest_z),
         MotionCommand("grab", {}),
+        MotionCommand("wait", {}),
         MotionCommand("move", draw_knife_pose),
         MotionCommand("move", knife_safe_height),
         MotionCommand("move", knife_cut_rot)]
@@ -269,19 +270,21 @@ def execute_motion_dangerous(m, arm):
             arm.center()
         elif MC.typename == 'grab':
             arm.grab()
+        elif MC.typename == 'wait':
+            arm.wait()
         elif MC.typename == 'release':
             arm.release()
     return
 
 
 def main():
-    #arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, _use_killswitch=False)
-    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, _use_killswitch=True)
-    m = Motion([MotionCommand("away", {}), MotionCommand("release", {})])
+    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=False)
+    # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True)
+    m = Motion([MotionCommand("away", {}), MotionCommand("release", {}), MotionCommand("wait", {})])
     execute_motion_dangerous(m, arm)
-    #time.sleep(10)
     m = plan_motion()
     execute_motion_dangerous(m, arm)
+    arm.stop_tm_driver()
     return
 
 

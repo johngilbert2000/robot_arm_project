@@ -5,23 +5,23 @@ import copy
 class MotionCommand:
 	'''
 	command is a tuple
-	there are 6 types of command: center, away, move, grab, release, move_immutable
+	there are 6 types of command: center, away, move, wait, grab, release, move_immutable
 	for example
 	(typename, param)
 	('center', {})
 	('away', {})
 	('move', {'X':350,'Y':350,'Z':350,'Rx':180,'Ry':135,'Rz':100})
 	('grab', {})
-        ('sleep', {'t':t}) t in seconds
+	('sleep', {'t':t}) t in seconds
 	('release', {})
 	('move_immutable', {'X':350,'Y':350,'Z':350,'Rx':180,'Ry':135,'Rz':100})
 	'''
 	def __init__(self, typename, param=None):
-                if param is None:
-                    param = {}
+		if param is None:
+			param = {}
 		# perform type check
 		assert type(typename) == str and type(param) == dict
-		allowed_typename = ['center','away','move','grab','release','move_immutable']
+		allowed_typename = ['center','away','move','wait','grab','release','move_immutable']
 		assert typename in allowed_typename
 		if typename in ['move','move_immutable']:
 			allowed_keys = ['X','Y','Z','Rx','Ry','Rz']
