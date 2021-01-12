@@ -16,7 +16,9 @@ class MotionCommand:
 	('release', {})
 	('move_immutable', {'X':350,'Y':350,'Z':350,'Rx':180,'Ry':135,'Rz':100})
 	'''
-	def __init__(self, typename, param={}):
+	def __init__(self, typename, param=None):
+                if param is None:
+                    param = {}
 		# perform type check
 		assert type(typename) == str and type(param) == dict
 		allowed_typename = ['center','away','move','grab','release','move_immutable']
