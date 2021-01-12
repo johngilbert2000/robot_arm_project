@@ -102,7 +102,7 @@ class Arm:
         optional parameter: wait_time (time to wait between moves)
 
     """
-    def __init__(self, X=350, Y=350, Z=350, Rx=180, Ry=0, Rz=135, debug=False, gripper_open=True, _use_killswitch=True):
+    def __init__(self, X=350, Y=350, Z=350, Rx=180, Ry=0, Rz=135, debug=False, gripper_open=True, use_killswitch=True):
         """Initialize parameters
 
         X, Y, Z, Rx, Ry, Rz  - starting position
@@ -117,7 +117,7 @@ class Arm:
         self.__previous_script = "" # previous script sent to robot, (See __move)
         self.__gripper_status = gripper_open # True: open, False: closed (See grab and release)
         self.__img_tag = 0
-        self.use_killswitch = _use_killswitch
+        self.use_killswitch = use_killswitch
         self.__joint_mode = False
         self.__joint1 = 45
         self.__joint2 = 0
@@ -476,7 +476,7 @@ if __name__ == "__main__":
         # Example Usage
 
         # arm = Arm(X=300,Y=300,Z=350,Rx=180,Ry=0,Rz=0)
-        arm = Arm(_use_killswitch=False)
+        arm = Arm(use_killswitch=False)
         #arm = Arm(DEFAULT_X, DEFAULT_Y, DEFAULT_Z, DEFAULT_RX, DEFAULT_RY, DEFAULT_RZ)
         #arm.debug_flag = DEBUG # If True, robot won't actually move
         #arm.center()
