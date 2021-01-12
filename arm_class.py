@@ -455,11 +455,6 @@ class Arm:
 
 
 if __name__ == "__main__":
-    import subprocess
-    cmd = ['roslaunch tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.119']
-    tmdriver_subprocess = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize = 1)
-    out = p.communicate()
-    print(out)
 
 
 

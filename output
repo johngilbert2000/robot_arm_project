@@ -1,0 +1,71 @@
+... logging to /home/robotics/.ros/log/f5e4a6ac-54a9-11eb-a768-d45d64b0f4c2/roslaunch-robotics-System-Product-Name-17360.log
+Checking log directory for disk usage. This may take a while.
+Press Ctrl-C to interrupt
+Done checking log file disk usage. Usage is <1GB.
+]2;/home/robotics/catkin_ws/src/tmr_ros1/tm_driver/launch/tm5_900_bringup.launch
+[1mstarted roslaunch server http://robotics-System-Product-Name:40081/[0m
+
+SUMMARY
+========
+
+PARAMETERS
+ * /robot_description: <?xml version="1....
+ * /rosdistro: melodic
+ * /rosversion: 1.14.10
+ * /tm_driver/base_frame: base
+ * /tm_driver/max_payload: 4.0
+ * /tm_driver/max_velocity: 3.14159
+ * /tm_driver/min_payload: 0.0
+ * /tm_driver/prefix: 
+ * /tm_driver/robot_ip_address: 192.168.0.119
+ * /tm_driver/tool_frame: tool0
+
+NODES
+  /
+    robot_state_publisher (robot_state_publisher/robot_state_publisher)
+    tm_driver (tm_driver/tm_driver)
+
+auto-starting new master
+[1mprocess[master]: started with pid [17373][0m
+[1mROS_MASTER_URI=http://localhost:11311[0m
+]2;/home/robotics/catkin_ws/src/tmr_ros1/tm_driver/launch/tm5_900_bringup.launch http://localhost:11311
+[1msetting /run_id to f5e4a6ac-54a9-11eb-a768-d45d64b0f4c2[0m
+[1mprocess[rosout-1]: started with pid [17384][0m
+started core service [/rosout]
+[1mprocess[robot_state_publisher-2]: started with pid [17391][0m
+[1mprocess[tm_driver-3]: started with pid [17392][0m
+[0m[ INFO] [1610437452.299098578]: TM_ROS: robot_ip:=192.168.0.119[0m
+[0m[ INFO] [1610437452.299146644]: TmCommunication::TmCommunication[0m
+[0m[ INFO] [1610437452.299182547]: TmCommunication::TmCommunication[0m
+[0m[ INFO] [1610437452.302647870]: TM_ROS: set base_frame to base[0m
+[0m[ INFO] [1610437452.303893906]: TM_ROS: set tool_frame to tool0[0m
+[0m[ INFO] [1610437452.303911458]: TM_DRV: halt[0m
+[0m[ INFO] [1610437452.303920359]: TM_DRV: start[0m
+[0m[ INFO] [1610437452.303927738]: TM_SVR: start[0m
+[0m[ INFO] [1610437452.303939468]: TM_COM: ip:=192.168.0.119[0m
+[0m[ INFO] [1610437452.304354060]: TM_COM: rv:=0[0m
+[0m[ INFO] [1610437452.304386391]: TM_COM: Connection is ok[0m
+[0m[ INFO] [1610437452.304395162]: TM_COM: O_NONBLOCK connection is ok[0m
+[0m[ INFO] [1610437452.304407623]: TM_COM: TM robot is connected. sockfd:=10[0m
+[0m[ INFO] [1610437452.304427746]: $TMSVR,24,Play,2,Stick_PlayPause=1,*11
+[0m
+[0m[ INFO] [1610437452.304444551]: TM_SCT: start[0m
+[0m[ INFO] [1610437452.304476463]: TM_COM: ip:=192.168.0.119[0m
+[0m[ INFO] [1610437452.304829403]: TM_COM: rv:=0[0m
+[0m[ INFO] [1610437452.304847114]: TM_COM: Connection is ok[0m
+[0m[ INFO] [1610437452.304856416]: TM_COM: O_NONBLOCK connection is ok[0m
+[0m[ INFO] [1610437452.304865260]: TM_COM: TM robot is connected. sockfd:=11[0m
+[0m[ INFO] [1610437452.306628132]: TM_ROS: publisher thread begin[0m
+[0m[ INFO] [1610437452.356820647]: TM_ROS: sct_response thread begin[0m
+[0m[ INFO] [1610437452.408918322]: TM_ROS: (TM_SVR): (Play) (0) OK[0m
+[tm_driver-3] killing on exit
+[robot_state_publisher-2] killing on exit
+TM_ROS: publisher thread end
+TM_ROS: shutdown
+TM_ROS: halt
+TM_ROS: sct_response thread end
+[rosout-1] killing on exit
+[master] killing on exit
+shutting down processing monitor...
+... shutting down processing monitor complete
+[1mdone[0m
