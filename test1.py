@@ -7,8 +7,7 @@ from get_pixel_position import get_pixel_position
 from arm_class import Arm
 import time
 from motion_generator import Motion, MotionCommand, GetSpecialMotion, PrintRawMCList
-from hsv import get_blue_orange, get_cuts
-
+from hsv import get_blue_orange, get_cuts, get_food_positions
 
 def get_tooltip_offset(Rx, Rz, tool_length = 100):
     RxRad = np.deg2rad(Rx)
@@ -20,7 +19,6 @@ def get_tooltip_offset(Rx, Rz, tool_length = 100):
     return float(x),float(y),float(h)
 
 def get_knifetip_offset(Rz):
-
     RzRad = np.deg2rad(Rz + 55)
     RzDelta = RzRad
 
@@ -33,11 +31,11 @@ def get_knifetip_offset(Rz):
     return float(x),float(y)
 
 
-def get_gripper_xy(blue_xy, orange_xy):
+def get_prong_xy(blue_xy, orange_xy):
     unit_x = orange_xy - blue_xy
     unit_x /= np.linalg.norm(unit_x)
     unit_y = np.array([-unit_x[1], unit_x[0]])
-    ret = blue_xy + 172*unit_x + 48*unit_y
+    ret = blue_xy + 172*unit_x + 36*unit_y
     return ret
 
 def get_knife_xy(blue_xy, orange_xy):
@@ -60,13 +58,130 @@ def get_rz(blue_xy, orange_xy):
     return float(rz)
 
 
+def plan_prong_motion():
+    timestamp = int(time.time())
+    output_img_fn = 'images/image-%d.png' % timestamp
+
+    cap = cv2.VideoCapture(0)
+    ret,frame = cap.read()
+    cv2.imwrite(output_img_fn, frame)
+
+    valid_centers = get_food_positions(frame, debug=True)
+    print(valid_centers)
+
+
+    blue_c, orange_c = get_blue_orange(frame, debug=False)
+    fucking_camera_offset = np.array([8,22])
+    stand_z = 172
+    blue_x, blue_y = get_pixel_position(blue_c[0], blue_c[1], stand_z)
+    orange_x, orange_y = get_pixel_position(orange_c[0], orange_c[1], stand_z)
+    blue_xy = np.array([blue_x, blue_y])
+    orange_xy = np.array([orange_x, orange_y])
+    blue_xy += fucking_camera_offset
+    orange_xy += fucking_camera_offset
+    prong_xy = get_prong_xy(blue_xy, orange_xy)
+
+    rz = get_rz(blue_xy, orange_xy)
+    print('rz:', rz)
+
+    prong_rx = 135
+    prong_tooltip_offset = get_tooltip_offset(prong_rx, rz)
+    prong_xy = prong_xy - np.array([prong_tooltip_offset[i] for i in range(2)])
+
+
+    prong_rest = MotionCommand("move",{'X':float(prong_xy[0]),'Y':float(prong_xy[1]),'Rz':rz})
+    prong_position_z = float(244 - prong_tooltip_offset[2])
+
+    take_prong_safe = {'Z':450}
+    take_prong_rotation = {'Rx':prong_rx,'Ry':0}
+    take_prong_position_pre = {'Z':prong_position_z + 55}
+    take_prong_position = {'Z':prong_position_z}
+    take_prong_motion = [
+        MotionCommand("move", take_prong_safe),
+        MotionCommand("release", {}),
+        prong_rest,
+        MotionCommand("move", take_prong_rotation),
+        MotionCommand("move", take_prong_position_pre),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("move", take_prong_position),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("wait",{}),
+        MotionCommand("grab", {}),
+        MotionCommand("wait", {}),
+        MotionCommand("move", take_prong_safe),
+        MotionCommand("release", {})]
+    put_prong_safe = {'Z':450}
+    put_prong_rotation = {'Rx':prong_rx,'Ry':0}
+    put_prong_position = {'Z':prong_position_z}
+    put_prong_motion = [MotionCommand("move", put_prong_safe),
+        MotionCommand("grab", {}),
+        prong_rest,
+        MotionCommand("move", put_prong_rotation),
+        MotionCommand("move", put_prong_position),
+        MotionCommand("release", {}),
+        MotionCommand("wait",{}),
+        MotionCommand("move", put_prong_safe),
+        MotionCommand("move", {"Rx": 180})]
+
+
+
+    prong_motion = []
+    prong_safe_height = 450
+    cutting_board_z = 235
+    prong_motion.append(MotionCommand("move", {'Z':  prong_safe_height}))
+    for c in valid_centers:
+        item_x, item_y = get_pixel_position(c[0], c[1], cutting_board_z)
+        item_x = float(item_x - prong_tooltip_offset[0])
+        item_y = float(item_y - prong_tooltip_offset[1])
+        item_z = float(407)
+        item_rz = float(135)
+        new_item_x = float(-200)
+        new_item_y = float(400)
+        new_item_rz = float(135)
+        item_position = MotionCommand("move",{'X':item_x,'Y':item_y,'Rz':item_rz})
+        item_grab = [MotionCommand("move",{'Z':item_z}),MotionCommand("grab",{}),MotionCommand("wait",{}),MotionCommand("move",{'Z':prong_safe_height})]
+        new_item_position = MotionCommand("move",{'X':new_item_x,'Y':new_item_y,'Rz':new_item_rz,'Z':prong_safe_height})
+        item_release = [MotionCommand("release",{}),MotionCommand("move",{'Z':prong_safe_height})]
+        item_subroutine = [item_position]+item_grab+[new_item_position]+item_release+[MotionCommand("move",{'Z':prong_safe_height})]
+        prong_motion.extend(item_subroutine)
+
+    start = [MotionCommand("move_immutable",{'X':340,'Y':340,'Z':450,'Rx':180,'Ry':0,'Rz':135})]
+    end = [MotionCommand("move_immutable",{'X':340,'Y':340,'Z':450,'Rx':180,'Ry':0,'Rz':135})]
+    MCList = start + take_prong_motion + prong_motion + put_prong_motion + end
+
+    print('Raw Motion Commands:')
+    PrintRawMCList(MCList)
+    print('\n\n=======================\n\n')
+    m = Motion(MCList)
+    print('Decoded Motion:')
+    print(m)
+    return m
+
+
 def plan_motion():
     #start = [MotionCommand("move_immutable",{'X':340,'Y':340,'Z':450,'Rx':180,'Ry':0,'Rz':135})]
 
     #m = Motion(start)
     #return m
-
-
 
     timestamp = int(time.time())
     output_img_fn = 'images/image-%d.png' % timestamp
@@ -92,7 +207,7 @@ def plan_motion():
     orange_xy += fucking_camera_offset
 
 
-    gripper_xy = get_gripper_xy(blue_xy, orange_xy)
+
     knife_xy = get_knife_xy(blue_xy, orange_xy)
     knife_xy_pre = get_knife_xy_pre(blue_xy, orange_xy)
     rz = get_rz(blue_xy, orange_xy)
@@ -101,7 +216,7 @@ def plan_motion():
     print(blue_x, blue_y)
     print(orange_x, orange_y)
     print(dist)
-    print('gripper:', gripper_xy)
+
     print('knife:', knife_xy)
     print('rz:', rz)
 
@@ -119,32 +234,7 @@ def plan_motion():
     away = [MotionCommand("away",{})]
 
 
-    gripper_rx = 135
-    gripper_tooltip_offset = get_tooltip_offset(gripper_rx, rz)
-    gripper_position_z = float(244 - gripper_tooltip_offset[2])
 
-    take_gripper_safe = {'Z':450}
-    take_gripper_rotation = {'Rx':gripper_rx,'Ry':0}
-    take_gripper_position_pre = {'Z':gripper_position_z + 40}
-    take_gripper_position = {'Z':gripper_position_z}
-    take_gripper_motion = [MotionCommand("move", take_gripper_safe),
-        MotionCommand("release", {}),
-        MotionCommand("move", take_gripper_rotation),
-        MotionCommand("move", take_gripper_position_pre),
-        MotionCommand("move", take_gripper_position),
-        MotionCommand("grab", {}),
-        MotionCommand("move", take_gripper_safe),
-        MotionCommand("release", {})]
-    put_gripper_safe = {'Z':450}
-    put_gripper_rotation = {'Rx':gripper_rx,'Ry':0}
-    put_gripper_position = {'Z':gripper_position_z}
-    put_gripper_motion = [MotionCommand("move", put_gripper_safe),
-        MotionCommand("grab", {}),
-        MotionCommand("move", put_gripper_rotation),
-        MotionCommand("move", put_gripper_position),
-        MotionCommand("release", {}),
-        MotionCommand("move", put_gripper_safe),
-        MotionCommand("move", {"Rx": 180})]
 
 
     knife_safe_height = {'Z':450}
@@ -182,31 +272,22 @@ def plan_motion():
         MotionCommand("release", {}),
         MotionCommand("move", knife_safe_height)]
 
-    gripper_xy = gripper_xy - np.array([gripper_tooltip_offset[i] for i in range(2)])
-    gripper_location = MotionCommand("move",{'X':float(gripper_xy[0]),'Y':float(gripper_xy[1]),'Rz':rz})
+    prong_xy = prong_xy - np.array([prong_tooltip_offset[i] for i in range(2)])
 
-    take_gripper = [gripper_location]+take_gripper_motion
-    put_gripper = [gripper_location]+put_gripper_motion
+
+    take_prong = [prong_position]+take_prong_motion
+    put_prong = [prong_position]+put_prong_motion
 
 
     take_knife = take_knife_motion
     put_knife = put_knife_motion
 
 
-    item_location = MotionCommand("move",{'X':150,'Y':400,'Rz':135})
-    item_grab = [MotionCommand("move",{'Z':320}),MotionCommand("grab",{}),MotionCommand("move",{'Z':450})]
-    new_item_location = MotionCommand("move",{'X':180,'Y':370,'Rz':100})
-    item_release = [MotionCommand("move",{'Z':320}),MotionCommand("release",{}),MotionCommand("move",{'Z':450})]
-    item_subroutine = [item_location]+item_grab+[new_item_location]+item_release+[MotionCommand("move",{'Z':450})]
 
-    cut_location = [MotionCommand("move",{'X':200,'Y':450,'Z':450})]
+
+    cut_position = [MotionCommand("move",{'X':200,'Y':450,'Z':450})]
     knife_subroutine = []
     knife_rotate = [MotionCommand("move", {'Ry':10})]
-    knife_rotate_back = [MotionCommand("move", {'Ry':0})]
-    for i in [245,242,239,236,233]:
-        knife_down = [MotionCommand("move", {'Z':275}), MotionCommand("move", {'Z':i})]
-        knife_subroutine.extend(knife_down + knife_rotate + knife_rotate_back + cut_location)
-    cut = cut_location + knife_subroutine
 
 
     cut_motion = []
@@ -235,14 +316,11 @@ def plan_motion():
         cut_end_x += knifetip_offset_x
         cut_start_y += knifetip_offset_y
         cut_end_y += knifetip_offset_y
-
-
         cut_motion.append(MotionCommand("move", {'X': cut_start_x, 'Y':cut_start_y, 'Rz':cut_tmp_rz}))
         cut_motion.append(MotionCommand("move", {'Z': cut_z}))
         cut_motion.append(MotionCommand("move", {'X': cut_end_x, 'Y':cut_end_y, 'Rz':cut_tmp_rz}))
         cut_motion.append(MotionCommand("move", {'X': cut_start_x, 'Y':cut_start_y, 'Rz':cut_tmp_rz}))
         cut_motion.append(MotionCommand("move", {'Z': cut_safe_height}))
-
         print((cut_start_x, cut_start_y), (cut_end_x, cut_end_y), cut_tmp_rz)
 
 
@@ -282,7 +360,10 @@ def main():
     # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True)
     m = Motion([MotionCommand("away", {}), MotionCommand("release", {}), MotionCommand("wait", {})])
     execute_motion_dangerous(m, arm)
-    m = plan_motion()
+    #m = plan_motion()
+    #execute_motion_dangerous(m, arm)
+
+    m = plan_prong_motion()
     execute_motion_dangerous(m, arm)
     arm.stop_tm_driver()
     return

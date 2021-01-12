@@ -141,7 +141,7 @@ def in_convex_hull(p, hull):
     return True
 
 
-def get_cuts(img, debug=False):
+def get_object_area(img, use_erode=True):
     colors = []
     red1 = [np.array([0,43,46]), np.array([10,255,255])]
     red2 = [np.array([160,43,46]), np.array([180,255,255])]
@@ -155,7 +155,25 @@ def get_cuts(img, debug=False):
     mask = cv2.dilate(mask, np.ones((3,3), np.uint8))
     mask = cv2.erode(mask, np.ones((3,3), np.uint8))
     might_be_object = cv2.bitwise_not(mask)
-    might_be_object = cv2.erode(might_be_object, np.ones((5,5), np.uint8))
+    if use_erode:
+        might_be_object = cv2.erode(might_be_object, np.ones((9,9), np.uint8))
+    else:
+        might_be_object = cv2.dilate(might_be_object, np.ones((5,5), np.uint8))
+    return might_be_object
+
+def get_cutting_board_hull(img):
+    colors = []
+    red1 = [np.array([0,43,46]), np.array([10,255,255])]
+    red2 = [np.array([160,43,46]), np.array([180,255,255])]
+    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    mask1 = cv2.inRange(hsv, red1[0], red1[1])
+    mask2 = cv2.inRange(hsv, red2[0], red2[1])
+    mask = cv2.bitwise_or(mask1, mask2)
+    #mask = cv2.bitwise_not(mask)
+    mask = cv2.erode(mask, np.ones((5,5), np.uint8))
+    mask = cv2.dilate(mask, np.ones((5,5), np.uint8))
+    mask = cv2.dilate(mask, np.ones((3,3), np.uint8))
+    mask = cv2.erode(mask, np.ones((3,3), np.uint8))
     mask = cv2.dilate(mask, np.ones((20,20), np.uint8))
     mask = cv2.dilate(mask, np.ones((20,20), np.uint8))
     mask = cv2.erode(mask, np.ones((20,20), np.uint8))
@@ -172,6 +190,12 @@ def get_cuts(img, debug=False):
     hull = cv2.convexHull(contours)
     print(hull.shape)
     hull = hull.reshape([hull.shape[0], 2])
+    return hull
+
+def get_cuts(img, debug=False):
+    might_be_object = get_object_area(img)
+    
+    hull = get_cutting_board_hull(img)
 
     #plot_hull = np.zeros_like(img)
     plot_hull = img.copy()
@@ -228,26 +252,51 @@ def get_cuts(img, debug=False):
         cv2.destroyAllWindows()
     return valid_cuts
 
-def get_food_only_photo(img, debug=False):
-    mask = get_food_region(img, debug)
-    ret = img.copy()
-    for i in range(frame.shape[0]):
-        for j in range(frame.shape[1]):
-            for k in range(frame.shape[2]):
-                if mask[i,j,k] == 0:
-                    ret[i,j,k] = 0
-    cv2.imshow('food_only', ret)
-    cv2.waitKey(0)
-    return ret
+def get_food_positions(img, debug=False):
+    food_img = get_object_area(img, use_erode=False)
+    hull = get_cutting_board_hull(img)
 
-def find_food(img, debug=False):
-    food_only_photo = get_food_only_photo(frame, debug)
-    colors = {}
-    colors['white'] = [np.array([200,200,200]), np.array([255,255,255])]
-    color = colors['white']
-    mask = cv2.inRange(img, color[0], color[1])
-    return
+    longest_dist = 0
+    current_longest = (-1,-1)
+    for i in range(len(hull)):
+        for j in range(i+1, len(hull)):
+            dist = np.linalg.norm(hull[i]-hull[j])
+            if dist > longest_dist:
+                longest_dist = dist
+                current_longest = (i,j)
+    hull_center = 0.5*(hull[i]+hull[j])
 
+    new_hull = []
+    for h in hull:
+        new_h = 0.9*(h - hull_center) + hull_center
+        new_hull.append(new_h)
+    new_hull = np.array(new_hull)
+    #print(hull)
+    #print(new_hull)
+    hull = new_hull
+
+    
+    grid_centers = []
+    grid_width = 32
+    for y in range(grid_width, 480-grid_width+1, grid_width):
+        for x in range(grid_width, 640-grid_width+1, grid_width):
+            grid_centers.append((x,y))
+    valid_centers = []
+    for p in grid_centers:
+        if in_convex_hull(p, hull) and food_img[p[1],p[0]]:
+            valid_centers.append(p)
+    
+    if debug:
+        plot_hull = img.copy()
+        for c in grid_centers:
+            cv2.circle(plot_hull,c, 3, (0,255,0), -1)
+        for c in valid_centers:
+            cv2.circle(plot_hull,c, 3, (0,0,255), -1)
+        cv2.imshow('plot_hull', plot_hull)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    return valid_centers
 
 
 if __name__ == "__main__":

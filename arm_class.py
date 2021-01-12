@@ -264,7 +264,7 @@ class Arm:
         self.p.wait()
 
     def wait(self):
-        seconds = 1.5
+        seconds = 1.0
         resp = self.__send_script("QueueTag(13,1)")
         #print('resp:', resp)
         while True:
