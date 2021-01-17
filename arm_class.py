@@ -176,7 +176,7 @@ class Arm:
         if (self.__Rz <= 45):
             assert self.__X + self.__Y <= 900
         else:
-            assert self.__X + self.__Y <= 800
+            assert self.__X + self.__Y <= 850
         assert math.sqrt(self.__X**2 + self.__Y**2) >= 282
         #assert self.__Z >= 150
         assert self.__X >= -250
@@ -255,10 +255,14 @@ class Arm:
 
     def start_tm_driver(self):
         import subprocess
-        # cmd = "stdbuf -oL roslaunch tm_driver tm5_900_bringup.launch robot_ip:=192.168.0.119 2>&1 | nc 127.0.0.1 %d &" % portnumber
-        cmd = ['stdbuf', '-oL', 'roslaunch', 'tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.123']
+        # cmd = "stdbuf -oL roslaunch tm_driver tm5_900_bringup.launch robot_ip:=192.168.0.123 2>&1 | nc 127.0.0.1 %d &" % portnumber
+        # cmd = 'stdbuf -oL roslaunch tm_driver tm5_900_bringup.launch robot_ip:=192.168.0.123 > log.txt'.split(' ')
+        cmd = ['/bin/bash','-c','pyenv shell system; source ~/catkin_ws/devel/setup.bash; roslaunch tm_driver tm5_900_bringup.launch robot_ip:=192.168.0.123']
+        # cmd = ['stdbuf', '-oL', 'roslaunch', 'tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.123']
         print(cmd)
-        self.p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
+        self.p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+        print("===")
+        # self.p = subprocess.Popen(cmd, shell=False)
         time.sleep(5)
 
     def stop_tm_driver(self):
@@ -267,7 +271,16 @@ class Arm:
         self.p.terminate()
         self.p.wait()
 
-    def wait(self, seconds = 1.0):
+    def other_wait(self, seconds=3.0):
+        "dear god do not call this a million times"
+        time.sleep(seconds)
+
+        c = "N"
+        while c == "N":
+            c = input("Ready to continue? [Y/N] ")
+        return
+
+    def wait(self, seconds = 3.0):
         return
         resp = self.__send_script("QueueTag(13,1)")
         print('resp:', resp)
@@ -362,6 +375,10 @@ class Arm:
     def center(self):
         "Centers the arm, (move to position: 350, 350, 250, 180, 0, 135)"
         self.move(350, 350, 450, 180, 0, 135)
+
+    def center_dangerous(self):
+        "joints: 45 1 90 1 90 1"
+        self.move_joints_dangerous(45,1,90,1,90,1)
 
     def away(self):
         self.move(-200, 400, 450, 180, 0, 135)

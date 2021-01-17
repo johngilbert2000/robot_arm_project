@@ -8,7 +8,8 @@ from arm_class import Arm
 import time
 from motion_generator import Motion, MotionCommand, GetSpecialMotion, PrintRawMCList
 from hsv import get_blue_orange, get_cuts, get_food_positions, get_cutting_board_hull
-from test1 import cut_proc
+from test1 import cut_proc, get_tooltip_offset
+from get_pixel_position import get_pixel_position
 
 
 def tilt_board(arm):
@@ -38,11 +39,15 @@ def hull_center(hull):
                 current_longest = (i,j)
     return (hull[i]+hull[j])//2
 
+
 def board_proc(arm):
     "grabs board, dumps contents, returns board"
 
+    board_z = 110
+
     arm.away()
-    arm.wait()
+    arm.other_wait()
+    #time.sleep(10)
 
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
@@ -60,31 +65,44 @@ def board_proc(arm):
     
     candidate_edge_points.sort(key=lambda x:x[1])
     board_grabbing_point = (candidate_edge_points[0] + candidate_edge_points[len(candidate_edge_points)-1])//2
-    
-
+    board_grab_x, board_grab_y = get_pixel_position(board_grabbing_point[0], board_grabbing_point[1], 260)
+    print(f'board_grab_x = {board_grab_x} ({type(board_grab_x)})')
+    print(f'board_grab_y = {board_grab_y} ({type(board_grab_y)})')
     draw_res = img.copy()
     for c in hull:
         cv2.circle(draw_res, (int(c[0]),int(c[1])), 3, (255,255,255), -1)
     for c in candidate_edge_points:
         cv2.circle(draw_res, (int(c[0]),int(c[1])), 3, (0,255,0), -1)
-    cv2.circle(draw_res, (board_grabbing_point[0],board_grabbing_point[1]), 3, (255,255,0), -1)
+    cv2.circle(draw_res, (int(board_grabbing_point[0]),int(board_grabbing_point[1])), 3, (255,255,0), -1)
     cv2.imshow('board grabbing', draw_res)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
-    board_z = 110
+    
+    tooltip_length = 100
+    offset_x = tooltip_length/math.sqrt(2)
+    offset_y = -tooltip_length/math.sqrt(2)
+
     arm.release()
     arm.center()
 
-    # grab board
+    # # grab board
+    # arm.move(Ry=90)
+    # arm.move(X=110,Y =590)
+    # arm.move_down(150)
+    # arm.move_down(board_z)
+    # arm.move(X=130,Y =570)
+    # arm.grab()
+    # arm.move_up()
+    # arm.move(X=130,Y =570)
     arm.move(Ry=90)
-    arm.move(X=110,Y =590)
-    arm.move_down(150)
+    arm.move(X=110, Y=590)
+    arm.move_down(220)
     arm.move_down(board_z)
-    arm.move(X=130,Y =570)
+    arm.move(X=board_grab_x-offset_x, Y=board_grab_y-offset_y)
     arm.grab()
     arm.move_up()
-    arm.move(X=130,Y =570)
+    arm.move(X=130, Y=570)
 
     # tilt board
     arm.move_joints_dangerous(joint1=90,joint2=36,joint3=70,joint4=70,joint5=90,joint6=90)
@@ -92,24 +110,62 @@ def board_proc(arm):
     arm.move_joints_dangerous(joint6=140)
 
     # return board
-    arm.move(X=130,Y =570)
+    # arm.move(X=130,Y =570)
+    # arm.move_down(board_z)
+    # arm.release()
+    # arm.move(X=110,Y =590)
+    # arm.move_up()
+    arm.move(X=board_grab_x-offset_x,Y =board_grab_y-offset_y)
     arm.move_down(board_z)
     arm.release()
     arm.move(X=110,Y =590)
     arm.move_up()
     
+def take_noodle(arm):
+    noodle_x = 320
+    noodle_y = 530
+
+    # take
+    arm.move_joints_dangerous(90,1,90,1,90,1)
+    arm.move(X=noodle_x, Y=noodle_y)
+    arm.move_down(180)
+    arm.grab()
+    arm.move_up()
+    
+    # pour into pot
+    arm.move(-50,100)
+    arm.move(-50,200)
+
+    # put back
+    arm.move(Rx=180)
+    arm.move(X=noodle_x, Y=noodle_y)
+    arm.move_down(180)
+    arm.release()
+    arm.move_up()
 
 
 def main():
     # board_z = 110
 
     # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=False)
-    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True)
+    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True, use_subproc=False)
+
+    arm.release()
+
+    arm.move_joints_dangerous(90,1,90,1,90,1)
+
+    arm.move_joints_dangerous(joint1=118, joint4=58)
+
+    # for i in range(90,180,2):
+    #     print("j1",i)
+    #     arm.move_joints_dangerous(joint1=i)
+    
+    
+    # arm.center_dangerous()
 
     # cut_proc(arm)
-
-    board_proc(arm)
-
+    # board_proc(arm)
+    take_noodle(arm)
 
     # arm.away()
     # arm.release()

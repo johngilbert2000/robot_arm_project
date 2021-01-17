@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
- import subprocess
+import subprocess
 import time
 
 cmd = "python3 while.py &"

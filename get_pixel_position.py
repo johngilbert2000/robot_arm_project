@@ -27,7 +27,7 @@ def get_pixel_position(img_x, img_y, robot_z=150):
 	v = np.array([img_x, img_y, 1.0], dtype=np.float32)
 	Hv = np.matmul(H_at_current_height,v)
 	robot_x, robot_y = Hv[0]/Hv[2], Hv[1]/Hv[2]
-	return robot_x, robot_y
+	return float(robot_x), float(robot_y)
 
 def old_get_pixel_position(img_x, img_y):
 	import numpy as np
