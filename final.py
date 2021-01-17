@@ -9,7 +9,6 @@ import time
 from motion_generator import Motion, MotionCommand, GetSpecialMotion, PrintRawMCList
 from hsv import get_blue_orange, get_cuts, get_food_positions, get_cutting_board_hull
 from test1 import cut_proc, get_tooltip_offset
-from get_pixel_position import get_pixel_position
 
 
 def tilt_board(arm):
@@ -40,18 +39,17 @@ def hull_center(hull):
     return (hull[i]+hull[j])//2
 
 
+
 def board_proc(arm):
     "grabs board, dumps contents, returns board"
 
     board_z = 110
 
+    arm.release()
     arm.away()
     arm.other_wait()
-    #time.sleep(10)
 
     cap = cv2.VideoCapture(0)
-    if not cap.isOpened():
-        print("not opened")
     ret,img = cap.read()
     hull = get_cutting_board_hull(img)
     board_center = hull_center(hull)
@@ -87,6 +85,14 @@ def board_proc(arm):
     arm.center()
 
     # # grab board
+    arm.move(Ry=90)
+    arm.move(X=90, Y=570)
+    arm.move_down(220)
+    arm.move_down(board_z)
+    arm.move(X=board_grab_x-offset_x, Y=board_grab_y-offset_y)
+    arm.grab()
+    arm.move_up()
+    arm.move(X=130, Y=570)
     # arm.move(Ry=90)
     # arm.move(X=110,Y =590)
     # arm.move_down(150)
@@ -95,14 +101,6 @@ def board_proc(arm):
     # arm.grab()
     # arm.move_up()
     # arm.move(X=130,Y =570)
-    arm.move(Ry=90)
-    arm.move(X=110, Y=590)
-    arm.move_down(220)
-    arm.move_down(board_z)
-    arm.move(X=board_grab_x-offset_x, Y=board_grab_y-offset_y)
-    arm.grab()
-    arm.move_up()
-    arm.move(X=130, Y=570)
 
     # tilt board
     arm.move_joints_dangerous(joint1=90,joint2=36,joint3=70,joint4=70,joint5=90,joint6=90)
@@ -110,36 +108,86 @@ def board_proc(arm):
     arm.move_joints_dangerous(joint6=140)
 
     # return board
+    arm.move(X=board_grab_x-offset_x,Y =board_grab_y-offset_y)
+    arm.move_down(board_z)
+    arm.release()
+    arm.move(X=90, Y=570)
+    arm.move_up()
     # arm.move(X=130,Y =570)
     # arm.move_down(board_z)
     # arm.release()
     # arm.move(X=110,Y =590)
     # arm.move_up()
-    arm.move(X=board_grab_x-offset_x,Y =board_grab_y-offset_y)
-    arm.move_down(board_z)
-    arm.release()
-    arm.move(X=110,Y =590)
-    arm.move_up()
-    
-def take_noodle(arm):
-    noodle_x = 320
-    noodle_y = 530
 
+def get_noodle_xy(debug=False):
+    cap = cv2.VideoCapture(0)
+    _, frame = cap.read()
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV) 
+
+    lower_grey = np.array([0, 0, 60]) 
+    upper_grey = np.array([179, 100, 127]) 
+    binarized = cv2.inRange(hsv, lower_grey, upper_grey) 
+
+    circles = cv2.HoughCircles(binarized,
+                                cv2.HOUGH_GRADIENT,
+                                1.0,
+                                binarized.shape[0]/16,
+                                param1=100.0, param2=30.0, minRadius=50, maxRadius=100)
+    max_r = 0
+    max_c = None
+    circles_img = frame.copy()
+    if circles is not None:
+        print(f'{len(circles[0])} circles')
+        circles = np.uint16(np.around(circles))
+        for i in circles[0, :]:
+            center = (i[0], i[1])
+            radius = i[2]
+            cv2.circle(circles_img, center, radius, (255, 10, 10), thickness=3)
+            if radius > max_r:
+                max_c = i
+                max_r = radius
+    else:
+        return 320, 530
+
+    if debug:
+        cv2.imshow('binarized', binarized)
+        cv2.imshow('circles_img', circles_img)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+    x,y = get_pixel_position(max_c[0]-max_r, max_c[1])
+
+    print(f'({x},{y})')
+
+    return x,y
+
+
+def noodle_proc(arm):
+
+    arm.release()
+    arm.away()
+
+    time.sleep(8)
+    noodle_x, noodle_y = get_noodle_xy()
+    noodle_z = 190
+    
     # take
     arm.move_joints_dangerous(90,1,90,1,90,1)
     arm.move(X=noodle_x, Y=noodle_y)
-    arm.move_down(180)
+    arm.move_down(noodle_z+30)
+    arm.move_down(noodle_z)
     arm.grab()
     arm.move_up()
     
     # pour into pot
-    arm.move(-50,100)
-    arm.move(-50,200)
+    arm.move_joints_dangerous(joint1=130, joint2=-23, joint3=120, joint4=20, joint5=90, joint6=90)
+    arm.move_joints_dangerous(joint1=130, joint2=7, joint3=100, joint4=55, joint5=90, joint6=90)
+    arm.move_joints_dangerous(joint1=130, joint2=-23, joint3=120, joint4=20, joint5=90, joint6=90)
 
     # put back
     arm.move(Rx=180)
     arm.move(X=noodle_x, Y=noodle_y)
-    arm.move_down(180)
+    arm.move_down(noodle_z)
     arm.release()
     arm.move_up()
 
@@ -148,24 +196,27 @@ def main():
     # board_z = 110
 
     # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=False)
-    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True, use_subproc=False)
+    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135, gripper_open=False, use_killswitch=False, use_subproc=False)
 
-    arm.release()
+    arm.away()
+    # arm.move(X=-120, Y=300, Rz=135)
 
     arm.move_joints_dangerous(90,1,90,1,90,1)
 
-    arm.move_joints_dangerous(joint1=118, joint4=58)
-
-    # for i in range(90,180,2):
-    #     print("j1",i)
-    #     arm.move_joints_dangerous(joint1=i)
-    
+    # for i in range(34,0,-2):
+    #     print("j4",i)
+    #     arm.move_joints_dangerous(joint4=i)    
     
     # arm.center_dangerous()
 
-    # cut_proc(arm)
-    # board_proc(arm)
-    take_noodle(arm)
+    arm.other_wait()
+    cut_proc(arm)
+
+    arm.other_wait()
+    board_proc(arm)
+
+    arm.other_wait()
+    noodle_proc(arm)
 
     # arm.away()
     # arm.release()

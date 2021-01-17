@@ -176,7 +176,7 @@ class Arm:
         if (self.__Rz <= 45):
             assert self.__X + self.__Y <= 900
         else:
-            assert self.__X + self.__Y <= 850
+            assert self.__X + self.__Y <= 900
         assert math.sqrt(self.__X**2 + self.__Y**2) >= 282
         #assert self.__Z >= 150
         assert self.__X >= -250

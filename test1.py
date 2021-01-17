@@ -246,6 +246,7 @@ def plan_cutting_motion():
     knife_rest_z = {'Z':171}
     knife_rest_z_2 = {'Z':170}
     knife_rest_pose = dict(knife_rest_z, **knife_rest_xy)
+    knife_rest_pose_2 = dict(knife_rest_z_2, **knife_rest_xy)
 
     draw_knife_pose = {'X':float(knife_xy_pre[0]),'Y':float(knife_xy_pre[1]),'Z':200}
     draw_knife_xy = {'X':float(knife_xy_pre[0]),'Y':float(knife_xy_pre[1])}
@@ -275,6 +276,10 @@ def plan_cutting_motion():
         MotionCommand("move", draw_knife_z),
         MotionCommand("move", knife_rest_pose),
         MotionCommand("release", {}),
+        MotionCommand("move", knife_rest_pose_2),
+        MotionCommand("move", knife_rest_pose),
+        MotionCommand("move", knife_rest_pose_2),
+        MotionCommand("move", knife_rest_pose),
         MotionCommand("move", knife_safe_height)]
 
 
