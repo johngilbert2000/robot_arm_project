@@ -102,7 +102,7 @@ class Arm:
         optional parameter: wait_time (time to wait between moves)
 
     """
-    def __init__(self, X=350, Y=350, Z=350, Rx=180, Ry=0, Rz=135, debug=False, gripper_open=True, use_killswitch=True):
+    def __init__(self, X=350, Y=350, Z=350, Rx=180, Ry=0, Rz=135, debug=False, gripper_open=True, use_killswitch=True, use_subproc=False):
         """Initialize parameters
 
         X, Y, Z, Rx, Ry, Rz  - starting position
@@ -125,7 +125,9 @@ class Arm:
         self.__joint4 = 0
         self.__joint5 = 90
         self.__joint6 = 0
-        self.start_tm_driver()
+        if use_subproc:
+            self.start_tm_driver()
+        self.use_subprocess_to_run_driver = use_subproc
 
     def get_joints(self):
         return [self.__joint1, self.__joint2, self.__joint3, self.__joint4, self.__joint5, self.__joint6]
@@ -176,7 +178,7 @@ class Arm:
         else:
             assert self.__X + self.__Y <= 800
         assert math.sqrt(self.__X**2 + self.__Y**2) >= 282
-        assert self.__Z >= 150
+        #assert self.__Z >= 150
         assert self.__X >= -250
         for i in [self.__Rx, self.__Ry, self.__Rz]:
             # assert i >= 0
@@ -254,19 +256,21 @@ class Arm:
     def start_tm_driver(self):
         import subprocess
         # cmd = "stdbuf -oL roslaunch tm_driver tm5_900_bringup.launch robot_ip:=192.168.0.119 2>&1 | nc 127.0.0.1 %d &" % portnumber
-        cmd = ['stdbuf', '-oL', 'roslaunch', 'tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.119']
+        cmd = ['stdbuf', '-oL', 'roslaunch', 'tm_driver', 'tm5_900_bringup.launch', 'robot_ip:=192.168.0.123']
         print(cmd)
         self.p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=False)
         time.sleep(5)
 
     def stop_tm_driver(self):
+        if not self.use_subprocess_to_run_driver:
+            return
         self.p.terminate()
         self.p.wait()
 
-    def wait(self):
-        seconds = 1.0
+    def wait(self, seconds = 1.0):
+        return
         resp = self.__send_script("QueueTag(13,1)")
-        #print('resp:', resp)
+        print('resp:', resp)
         while True:
             data = self.p.stdout.readline()
             if "13,true" in data.decode():
@@ -496,7 +500,7 @@ if __name__ == "__main__":
 
 
 
-    
+
 
 
     #while 1:

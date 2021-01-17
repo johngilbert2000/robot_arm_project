@@ -9,7 +9,7 @@ import time
 from motion_generator import Motion, MotionCommand, GetSpecialMotion, PrintRawMCList
 from hsv import get_blue_orange, get_cuts, get_food_positions
 
-def get_tooltip_offset(Rx, Rz, tool_length = 100):
+def get_tooltip_offset(Rx, Rz, tool_length = 105):
     RxRad = np.deg2rad(Rx)
     r = np.sin(RxRad)*tool_length
     h = np.cos(RxRad)*tool_length
@@ -35,7 +35,7 @@ def get_prong_xy(blue_xy, orange_xy):
     unit_x = orange_xy - blue_xy
     unit_x /= np.linalg.norm(unit_x)
     unit_y = np.array([-unit_x[1], unit_x[0]])
-    ret = blue_xy + 172*unit_x + 36*unit_y
+    ret = blue_xy + 165*unit_x + 36*unit_y
     return ret
 
 def get_knife_xy(blue_xy, orange_xy):
@@ -90,7 +90,7 @@ def plan_prong_motion():
 
 
     prong_rest = MotionCommand("move",{'X':float(prong_xy[0]),'Y':float(prong_xy[1]),'Rz':rz})
-    prong_position_z = float(244 - prong_tooltip_offset[2])
+    prong_position_z = float(230 - prong_tooltip_offset[2])
 
     take_prong_safe = {'Z':450}
     take_prong_rotation = {'Rx':prong_rx,'Ry':0}
@@ -177,7 +177,7 @@ def plan_prong_motion():
     return m
 
 
-def plan_motion():
+def plan_cutting_motion():
     #start = [MotionCommand("move_immutable",{'X':340,'Y':340,'Z':450,'Rx':180,'Ry':0,'Rz':135})]
 
     #m = Motion(start)
@@ -272,16 +272,9 @@ def plan_motion():
         MotionCommand("release", {}),
         MotionCommand("move", knife_safe_height)]
 
-    prong_xy = prong_xy - np.array([prong_tooltip_offset[i] for i in range(2)])
-
-
-    take_prong = [prong_position]+take_prong_motion
-    put_prong = [prong_position]+put_prong_motion
-
 
     take_knife = take_knife_motion
     put_knife = put_knife_motion
-
 
 
 
@@ -354,17 +347,25 @@ def execute_motion_dangerous(m, arm):
             arm.release()
     return
 
-
-def main():
-    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=False)
-    # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True)
+def cut_proc(arm):
+    "full procedure for cutting stuff"
     m = Motion([MotionCommand("away", {}), MotionCommand("release", {}), MotionCommand("wait", {})])
     execute_motion_dangerous(m, arm)
-    #m = plan_motion()
-    #execute_motion_dangerous(m, arm)
-
-    m = plan_prong_motion()
+    m = plan_cutting_motion()
     execute_motion_dangerous(m, arm)
+
+
+def main():
+    # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=False)
+    arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True)
+    
+    m = Motion([MotionCommand("away", {}), MotionCommand("release", {}), MotionCommand("wait", {})])
+    execute_motion_dangerous(m, arm)
+    m = plan_cutting_motion()
+    execute_motion_dangerous(m, arm)
+
+    # m = plan_prong_motion()
+    # execute_motion_dangerous(m, arm)
     arm.stop_tm_driver()
     return
 
