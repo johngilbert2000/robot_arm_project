@@ -173,6 +173,7 @@ class Arm:
 
     def __safety_check(self):
         "Ensures stored coordinates are legal"
+        return
         if (self.__Rz <= 45):
             assert self.__X + self.__Y <= 900
         else:

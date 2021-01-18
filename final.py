@@ -181,7 +181,7 @@ def noodle_proc(arm):
     
     # pour into pot
     arm.move_joints_dangerous(joint1=130, joint2=-23, joint3=120, joint4=20, joint5=90, joint6=90)
-    arm.move_joints_dangerous(joint1=130, joint2=7, joint3=100, joint4=55, joint5=90, joint6=90)
+    arm.move_joints_dangerous(joint1=130, joint2=7, joint3=100, joint4=64, joint5=90, joint6=90)
     arm.move_joints_dangerous(joint1=130, joint2=-23, joint3=120, joint4=20, joint5=90, joint6=90)
 
     # put back

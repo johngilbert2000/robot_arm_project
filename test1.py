@@ -368,7 +368,7 @@ def cut_proc(arm):
 def main():
     # arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=False)
     arm = Arm(X=340,Y=340,Z=450,Rx=180,Ry=0,Rz=135,gripper_open=False, use_killswitch=True)
-    
+
     m = Motion([MotionCommand("away", {}), MotionCommand("release", {}), MotionCommand("wait", {})])
     execute_motion_dangerous(m, arm)
     m = plan_cutting_motion()
